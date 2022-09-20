@@ -1,0 +1,43 @@
+{
+  "path": "Offline/CT",
+  "foldername": "CT",
+  "name": "CT",
+  "title": "CT",
+  "uuid": "18ae4b34eb78f34110772ea067281324",
+  "created_at": "2021-12-08 19:38:45",
+  "updated_at": "2021-12-08 19:38:45",
+  "documents": [
+    {
+      "uuid": "ab1a47f6bc84cdc5c904fff719bbc261",
+      "title": "Sheet_1",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "updateTime": 1629935171,
+      "createTime": 1629935171,
+      "histories": [],
+      "created_at": "2021-08-25 17:46:11",
+      "updated_at": "2021-08-25 17:46:11"
+    },
+    {
+      "uuid": "af86895656ff93eb73bc1d1ac1daaef9",
+      "title": "PCB_CT",
+      "filename": "PCB_CT.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "updateTime": 1629935188,
+      "createTime": 1629935188,
+      "histories": [],
+      "created_at": "2021-08-25 17:46:28",
+      "updated_at": "2021-08-25 17:46:28"
+    }
+  ],
+  "content": "",
+  "stick": "",
+  "sort": [],
+  "schfilename": "CT.json",
+  "schfilemtime": 1629935171000
+}

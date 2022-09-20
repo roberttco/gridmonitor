@@ -1,0 +1,344 @@
+###
+### IMPORTANT: You will need to put in your own calibrairon points for the voltage and current measurements.  Use a 
+### good quality volt meter and a RESISTIVE load with a calibrated current probe (like a clamp on ampt meter).  You
+### can also use a Kill-o-watt device to get the measuements in one go.
+###
+esphome:
+  name: gridsensor
+  platform: ESP8266
+  board: d1_mini
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: <your API encryption key>
+
+ota:
+  password: <your OTA password>
+
+wifi:
+  ssid: <SSID>
+  password: <SSID password>
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Gridsensor Fallback Hotspot"
+    password: "3WAlUYE4uIuy"
+
+captive_portal:
+
+
+time: 
+  - platform: homeassistant
+    id: homeassistant_time
+
+i2c:
+  sda: 4
+  scl: 5
+  scan: true
+  id: bus_a
+  
+ads1115:
+  - address: 0x48
+    i2c_id: bus_a
+    continuous_mode: true
+    id: CHA
+  - address: 0x49
+    i2c_id: bus_a
+    continuous_mode: true
+    id: CHB
+  - address: 0x4A
+    i2c_id: bus_a
+    continuous_mode: true
+    id: CHC
+  - address: 0x4B
+    i2c_id: bus_a
+    continuous_mode: true
+    id: CHD
+
+sensor:
+  - platform: ads1115
+    ads1115_id: CHA
+    multiplexer: 'A2_A3'
+    gain: 6.144
+    #name: "Channel A Current Raw"
+    id: "channel_a_current_raw"
+    internal: true
+    update_interval: 1s
+    
+  - platform: ct_clamp
+    sensor: "channel_a_current_raw"
+    name: "Channel A Current"
+    id: channel_a_current
+    sample_duration: 1s
+    update_interval: 2s
+    filters:
+      #- median:
+      - calibrate_linear:
+          - 0 -> 0
+          - 0.04 -> 1.40
+          - 0.05 -> 1.83
+          - 0.17 -> 5.94
+
+##
+## Voltage measurement
+##
+  - platform: ads1115
+    ads1115_id: CHA
+    multiplexer: 'A0_A1'
+    gain: 6.144
+    #name: "Channel A Voltage Raw"
+    id: "channel_a_voltage_raw"
+    internal: true
+    update_interval: 1s
+
+  - platform: ct_clamp
+    sensor: "channel_a_voltage_raw"
+    #name: "Channel A CT Voltage"
+    id: channel_a_ct_voltage
+    sample_duration: 1s
+    internal: true
+    update_interval: 2s
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_a_voltage
+            state: !lambda 'return x;'
+
+  - platform: template
+    name: "Channel A Voltage"
+    id: channel_a_voltage
+    unit_of_measurement: "V"
+    device_class: "voltage"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    filters:
+     # - median:
+     #     window_size: 10
+      - calibrate_linear:
+          - 0 -> 0
+          - 3.3 -> 121
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_a_power
+            state: !lambda 'return x * id(channel_a_current).state;'
+        #- logger.log:
+        #    level: INFO
+        #    format: "CHA VOLTAGE = %f, %f"
+        #    args: ['id(channel_a_ct_voltage).state','id(channel_a_voltage).state']
+##
+## Power calculation
+##
+
+  - platform: template
+    name: "Channel A Power"
+    id: channel_a_power
+    unit_of_measurement: "W"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+## 
+## Energy
+##
+  - platform: total_daily_energy
+    name: "Channel A Daily Energy"
+    power_id: channel_a_power
+    
+    
+##
+################### Channel B 
+##
+
+  - platform: ads1115
+    ads1115_id: CHB
+    multiplexer: 'A2_A3'
+    gain: 6.144
+    #name: "Channel B Current Raw"
+    id: "channel_b_current_raw"
+    internal: true
+    update_interval: 1s
+    
+  - platform: ct_clamp
+    sensor: "channel_b_current_raw"
+    name: "Channel B Current"
+    id: channel_b_current
+    sample_duration: 1s
+    update_interval: 2s
+    filters:
+      #- median:
+      - calibrate_linear:
+          - 0 -> 0
+          - 0.04 -> 1.40
+          - 0.05 -> 1.83
+          - 0.17 -> 5.94
+
+##
+## Voltage measurement
+##
+  - platform: ads1115
+    ads1115_id: CHB
+    multiplexer: 'A0_A1'
+    gain: 6.144
+    #name: "Channel B Voltage Raw"
+    id: "channel_b_voltage_raw"
+    internal: true
+    update_interval: 1s
+
+  - platform: ct_clamp
+    sensor: "channel_b_voltage_raw"
+    #name: "Channel B CT Voltage"
+    id: channel_b_ct_voltage
+    sample_duration: 1s
+    internal: true
+    update_interval: 2s
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_b_voltage
+            state: !lambda 'return x;'
+
+  - platform: template
+    name: "Channel B Voltage"
+    id: channel_b_voltage
+    unit_of_measurement: "V"
+    device_class: "voltage"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    filters:
+      #- median:
+      #    window_size: 10
+      - calibrate_linear:
+          - 0 -> 0
+          - 3.3 -> 121
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_b_power
+            state: !lambda 'return x * id(channel_b_current).state;'
+        #- logger.log:
+        #    level: INFO
+        #    format: "CHB VOLTAGE = %f, %f"
+        #    args: ['id(channel_b_ct_voltage).state','id(channel_b_voltage).state']
+##
+## Power calculation
+##
+
+  - platform: template
+    name: "Channel B Power"
+    id: channel_b_power
+    unit_of_measurement: "W"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+## 
+## Energy
+##
+  - platform: total_daily_energy
+    name: "Channel B Daily Energy"
+    power_id: channel_b_power
+
+##
+################### Channel C 
+##
+
+  - platform: ads1115
+    ads1115_id: CHC
+    multiplexer: 'A2_A3'
+    gain: 6.144
+    id: "channel_c_current_raw"
+    internal: true
+    update_interval: 1s
+    
+  - platform: ct_clamp
+    sensor: "channel_c_current_raw"
+    name: "Channel C Current"
+    id: channel_c_current
+    sample_duration: 1s
+    update_interval: 2s
+    filters:
+      - calibrate_linear:
+          - 0 -> 0
+          - 0.01 -> 0.30
+          - 0.69 -> 17.35
+    
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_c_power
+            state: !lambda 'return 240 * id(channel_c_current).state;'
+
+##
+## Power calculation
+##
+
+  - platform: template
+    name: "Channel C Power"
+    id: channel_c_power
+    unit_of_measurement: "W"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+## 
+## Energy
+##
+  - platform: total_daily_energy
+    name: "Channel C Daily Energy"
+    power_id: channel_c_power          
+
+##
+################### Channel C 
+##
+
+  - platform: ads1115
+    ads1115_id: CHD
+    multiplexer: 'A2_A3'
+    gain: 6.144
+    id: "channel_d_current_raw"
+    internal: true
+    update_interval: 1s
+    
+  - platform: ct_clamp
+    sensor: "channel_d_current_raw"
+    name: "Channel D Current"
+    id: channel_d_current
+    sample_duration: 1s
+    update_interval: 2s
+    filters:
+      #- median:
+      - calibrate_linear:
+          - 0 -> 0
+          - 0.01 -> 0.30
+          - 0.69 -> 17.35
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: channel_d_power
+            state: !lambda 'return 120 * id(channel_d_current).state;'
+
+##
+## Power calculation
+##
+
+  - platform: template
+    name: "Channel D Power"
+    id: channel_d_power
+    unit_of_measurement: "W"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+## 
+## Energy
+##
+  - platform: total_daily_energy
+    name: "Channel D Daily Energy"
+    power_id: channel_d_power          
+
